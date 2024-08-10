@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package weather_fetcher;
+
+option go_package = "github.com/rhyzue/WeatherFetcher/weather_fetcher";
+
+// Interface exported by the server.
+service WeatherFetcher {
+  rpc GetWeather(City) returns (Weather) {}
+}
+
+message City {
+  string name = 1;
+}
+
+message Weather {
+  string name = 2;
+  string description = 3;
+}
