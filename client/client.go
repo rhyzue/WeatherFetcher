@@ -15,6 +15,7 @@ func main() {
 	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Client could not connect: %s", err)
+		return
 	}
 
 	defer conn.Close()
@@ -24,7 +25,17 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	r, err := c.GetWeather(ctx, &pb.City{Name: "Toronto"})
+	locations, err := c.GetLocation(ctx, &pb.StringValue{Value: "Toronto"})
+	if err != nil {
+		log.Fatalf("could not get city: %v", err)
+		return
+	}
+
+	for _, location := range locations.GetLocations() {
+		log.Println(location.City)
+	}
+
+	r, err := c.GetWeather(ctx, &pb.Location{})
 	if err != nil {
 		log.Fatalf("could not get weather: %v", err)
 	}

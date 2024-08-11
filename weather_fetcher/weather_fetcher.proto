@@ -6,11 +6,23 @@ option go_package = "github.com/rhyzue/WeatherFetcher/weather_fetcher";
 
 // Interface exported by the server.
 service WeatherFetcher {
-  rpc GetWeather(City) returns (Weather) {}
+  rpc GetWeather(Location) returns (Weather) {}
+  rpc GetLocation(StringValue) returns (LocationOptions) {}
 }
 
-message City {
-  string name = 1;
+message StringValue {
+  string value = 1;
+}
+
+message Location {
+  string city = 1;
+  string country = 2;
+  double latitude = 3;
+  double longitude = 4; 
+}
+
+message LocationOptions {
+  repeated Location locations = 1;
 }
 
 message Weather {

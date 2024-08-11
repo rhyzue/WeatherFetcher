@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WeatherFetcher_GetWeather_FullMethodName = "/weather_fetcher.WeatherFetcher/GetWeather"
+	WeatherFetcher_GetWeather_FullMethodName  = "/weather_fetcher.WeatherFetcher/GetWeather"
+	WeatherFetcher_GetLocation_FullMethodName = "/weather_fetcher.WeatherFetcher/GetLocation"
 )
 
 // WeatherFetcherClient is the client API for WeatherFetcher service.
@@ -28,7 +29,8 @@ const (
 //
 // Interface exported by the server.
 type WeatherFetcherClient interface {
-	GetWeather(ctx context.Context, in *City, opts ...grpc.CallOption) (*Weather, error)
+	GetWeather(ctx context.Context, in *Location, opts ...grpc.CallOption) (*Weather, error)
+	GetLocation(ctx context.Context, in *StringValue, opts ...grpc.CallOption) (*LocationOptions, error)
 }
 
 type weatherFetcherClient struct {
@@ -39,10 +41,20 @@ func NewWeatherFetcherClient(cc grpc.ClientConnInterface) WeatherFetcherClient {
 	return &weatherFetcherClient{cc}
 }
 
-func (c *weatherFetcherClient) GetWeather(ctx context.Context, in *City, opts ...grpc.CallOption) (*Weather, error) {
+func (c *weatherFetcherClient) GetWeather(ctx context.Context, in *Location, opts ...grpc.CallOption) (*Weather, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Weather)
 	err := c.cc.Invoke(ctx, WeatherFetcher_GetWeather_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weatherFetcherClient) GetLocation(ctx context.Context, in *StringValue, opts ...grpc.CallOption) (*LocationOptions, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LocationOptions)
+	err := c.cc.Invoke(ctx, WeatherFetcher_GetLocation_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +67,8 @@ func (c *weatherFetcherClient) GetWeather(ctx context.Context, in *City, opts ..
 //
 // Interface exported by the server.
 type WeatherFetcherServer interface {
-	GetWeather(context.Context, *City) (*Weather, error)
+	GetWeather(context.Context, *Location) (*Weather, error)
+	GetLocation(context.Context, *StringValue) (*LocationOptions, error)
 	mustEmbedUnimplementedWeatherFetcherServer()
 }
 
@@ -66,8 +79,11 @@ type WeatherFetcherServer interface {
 // pointer dereference when methods are called.
 type UnimplementedWeatherFetcherServer struct{}
 
-func (UnimplementedWeatherFetcherServer) GetWeather(context.Context, *City) (*Weather, error) {
+func (UnimplementedWeatherFetcherServer) GetWeather(context.Context, *Location) (*Weather, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetWeather not implemented")
+}
+func (UnimplementedWeatherFetcherServer) GetLocation(context.Context, *StringValue) (*LocationOptions, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLocation not implemented")
 }
 func (UnimplementedWeatherFetcherServer) mustEmbedUnimplementedWeatherFetcherServer() {}
 func (UnimplementedWeatherFetcherServer) testEmbeddedByValue()                        {}
@@ -91,7 +107,7 @@ func RegisterWeatherFetcherServer(s grpc.ServiceRegistrar, srv WeatherFetcherSer
 }
 
 func _WeatherFetcher_GetWeather_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(City)
+	in := new(Location)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -103,7 +119,25 @@ func _WeatherFetcher_GetWeather_Handler(srv interface{}, ctx context.Context, de
 		FullMethod: WeatherFetcher_GetWeather_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WeatherFetcherServer).GetWeather(ctx, req.(*City))
+		return srv.(WeatherFetcherServer).GetWeather(ctx, req.(*Location))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeatherFetcher_GetLocation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StringValue)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeatherFetcherServer).GetLocation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeatherFetcher_GetLocation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeatherFetcherServer).GetLocation(ctx, req.(*StringValue))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -118,6 +152,10 @@ var WeatherFetcher_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetWeather",
 			Handler:    _WeatherFetcher_GetWeather_Handler,
+		},
+		{
+			MethodName: "GetLocation",
+			Handler:    _WeatherFetcher_GetLocation_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
