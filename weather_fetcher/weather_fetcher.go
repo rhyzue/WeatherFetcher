@@ -11,8 +11,6 @@ import (
 type Server struct {
 }
 
-const API_KEY = "4dec8f8f0cc99ebd610e4b912745e4bd"
-
 var (
 	openweather_path_prefix = "https://api.openweathermap.org/"
 )
