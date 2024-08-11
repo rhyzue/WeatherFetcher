@@ -106,6 +106,10 @@ func (s *Server) GetWeather(ctx context.Context, location *Location) (*Weather, 
 	weather := Weather{
 		Name:        response_body.Weather[0].Main,
 		Description: response_body.Weather[0].Description,
+		Temperature: response_body.Main.Temp,
+		FeelsLike:   response_body.Main.FeelsLike,
+		Pressure:    int32(response_body.Main.Pressure),
+		Humidity:    int32(response_body.Main.Humidity),
 	}
 	return &weather, nil
 }

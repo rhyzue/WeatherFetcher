@@ -26,6 +26,10 @@ message LocationOptions {
 }
 
 message Weather {
-  string name = 2;
-  string description = 3;
+  string name = 1;
+  string description = 2;
+  double temperature = 3; //default C
+  double feels_like = 4; //default C
+  int32 pressure = 5; //hPa
+  int32 humidity = 6; //%
 }
