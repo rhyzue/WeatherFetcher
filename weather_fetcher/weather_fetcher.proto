@@ -8,6 +8,7 @@ option go_package = "github.com/rhyzue/WeatherFetcher/weather_fetcher";
 service WeatherFetcher {
   rpc GetWeather(Location) returns (Weather) {}
   rpc GetLocation(StringValue) returns (LocationOptions) {}
+  rpc GetForecast(Location) returns (stream Weather) {}
 }
 
 message StringValue {
@@ -32,4 +33,6 @@ message Weather {
   double feels_like = 4; //default C
   int32 pressure = 5; //hPa
   int32 humidity = 6; //%
+  Location location = 7;
+  int32 timestamp = 8;
 }

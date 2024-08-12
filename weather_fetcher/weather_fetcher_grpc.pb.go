@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	WeatherFetcher_GetWeather_FullMethodName  = "/weather_fetcher.WeatherFetcher/GetWeather"
 	WeatherFetcher_GetLocation_FullMethodName = "/weather_fetcher.WeatherFetcher/GetLocation"
+	WeatherFetcher_GetForecast_FullMethodName = "/weather_fetcher.WeatherFetcher/GetForecast"
 )
 
 // WeatherFetcherClient is the client API for WeatherFetcher service.
@@ -31,6 +32,7 @@ const (
 type WeatherFetcherClient interface {
 	GetWeather(ctx context.Context, in *Location, opts ...grpc.CallOption) (*Weather, error)
 	GetLocation(ctx context.Context, in *StringValue, opts ...grpc.CallOption) (*LocationOptions, error)
+	GetForecast(ctx context.Context, in *Location, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Weather], error)
 }
 
 type weatherFetcherClient struct {
@@ -61,6 +63,25 @@ func (c *weatherFetcherClient) GetLocation(ctx context.Context, in *StringValue,
 	return out, nil
 }
 
+func (c *weatherFetcherClient) GetForecast(ctx context.Context, in *Location, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Weather], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &WeatherFetcher_ServiceDesc.Streams[0], WeatherFetcher_GetForecast_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[Location, Weather]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type WeatherFetcher_GetForecastClient = grpc.ServerStreamingClient[Weather]
+
 // WeatherFetcherServer is the server API for WeatherFetcher service.
 // All implementations must embed UnimplementedWeatherFetcherServer
 // for forward compatibility.
@@ -69,6 +90,7 @@ func (c *weatherFetcherClient) GetLocation(ctx context.Context, in *StringValue,
 type WeatherFetcherServer interface {
 	GetWeather(context.Context, *Location) (*Weather, error)
 	GetLocation(context.Context, *StringValue) (*LocationOptions, error)
+	GetForecast(*Location, grpc.ServerStreamingServer[Weather]) error
 	mustEmbedUnimplementedWeatherFetcherServer()
 }
 
@@ -84,6 +106,9 @@ func (UnimplementedWeatherFetcherServer) GetWeather(context.Context, *Location) 
 }
 func (UnimplementedWeatherFetcherServer) GetLocation(context.Context, *StringValue) (*LocationOptions, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetLocation not implemented")
+}
+func (UnimplementedWeatherFetcherServer) GetForecast(*Location, grpc.ServerStreamingServer[Weather]) error {
+	return status.Errorf(codes.Unimplemented, "method GetForecast not implemented")
 }
 func (UnimplementedWeatherFetcherServer) mustEmbedUnimplementedWeatherFetcherServer() {}
 func (UnimplementedWeatherFetcherServer) testEmbeddedByValue()                        {}
@@ -142,6 +167,17 @@ func _WeatherFetcher_GetLocation_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WeatherFetcher_GetForecast_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Location)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(WeatherFetcherServer).GetForecast(m, &grpc.GenericServerStream[Location, Weather]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type WeatherFetcher_GetForecastServer = grpc.ServerStreamingServer[Weather]
+
 // WeatherFetcher_ServiceDesc is the grpc.ServiceDesc for WeatherFetcher service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -158,6 +194,12 @@ var WeatherFetcher_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _WeatherFetcher_GetLocation_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "GetForecast",
+			Handler:       _WeatherFetcher_GetForecast_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "weather_fetcher/weather_fetcher.proto",
 }

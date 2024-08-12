@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -25,13 +26,12 @@ func getUserInput(prompt string) string {
 	return res
 }
 
-func requestCurrentWeather(ctx context.Context, c pb.WeatherFetcherClient) {
+func requestLocation(ctx context.Context, c pb.WeatherFetcherClient) *pb.Location {
 	cityName := getUserInput("Enter city name: ")
 
 	locations, err := c.GetLocation(ctx, &pb.StringValue{Value: cityName})
 	if err != nil || len(locations.GetLocations()) == 0 {
 		log.Fatalf("could not find city: %v", err)
-		return
 	}
 
 	fmt.Println("Found the following results: ")
@@ -46,21 +46,48 @@ func requestCurrentWeather(ctx context.Context, c pb.WeatherFetcherClient) {
 		log.Fatalf("Invalid city selection.")
 	}
 
-	loc := locations.GetLocations()[cityOpt-1]
-	weatherInput := pb.Location{
-		City:      loc.City,
-		Longitude: loc.Longitude,
-		Latitude:  loc.Latitude,
-		Country:   loc.Country,
-	}
+	return locations.GetLocations()[cityOpt-1]
+}
 
-	weather, err := c.GetWeather(ctx, &weatherInput)
+func printWeather(weather *pb.Weather) {
+	fmt.Printf("Weather for %s, %s, timestamp %d: \n", weather.Location.City, weather.Location.Country, weather.Timestamp)
+	fmt.Printf("\tname: %s\n", weather.Name)
+	fmt.Printf("\tdescription: %s\n", weather.Description)
+	fmt.Printf("\ttemperature: %v\n", weather.Temperature)
+	fmt.Printf("\tfeels_like: %v\n", weather.FeelsLike)
+	fmt.Printf("\tpressure: %d\n", weather.Pressure)
+	fmt.Printf("\thumidity: %d\n", weather.Humidity)
+}
+
+func requestCurrentWeather(ctx context.Context, c pb.WeatherFetcherClient) {
+	loc := requestLocation(ctx, c)
+
+	weather, err := c.GetWeather(ctx, loc)
 	if err != nil {
 		log.Fatalf("could not get weather: %v", err)
 	}
 
-	fmt.Printf("Got weather for %s: \n", cityName)
-	fmt.Printf("%+v\n", weather)
+	printWeather(weather)
+}
+
+func requestForecast(ctx context.Context, c pb.WeatherFetcherClient) {
+	loc := requestLocation(ctx, c)
+
+	stream, err := c.GetForecast(ctx, loc)
+	if err != nil {
+		log.Fatalf("c.GetForecast failed: %v", err)
+	}
+	fmt.Println("Receiving forecast as stream...")
+	for {
+		weather, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("c.GetForecast failed: %v", err)
+		}
+		printWeather(weather)
+	}
 }
 
 func main() {
@@ -90,6 +117,8 @@ func main() {
 		fmt.Println("Welcome to WeatherFetcher. Enter 'quit' to exit the application.")
 		fmt.Println("The following operations are supported: ")
 		fmt.Println("[1] - Retrieve current weather")
+		fmt.Println("[2] - Stream 5-day forecast (3-hour step)")
+
 		fmt.Println("--------------------------------")
 		user_opt := getUserInput("Select an operation: ")
 
@@ -98,6 +127,8 @@ func main() {
 			return
 		case "1":
 			requestCurrentWeather(ctx, c)
+		case "2":
+			requestForecast(ctx, c)
 		}
 	}
 

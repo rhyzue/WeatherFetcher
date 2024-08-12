@@ -16,7 +16,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	pb.RegisterWeatherFetcherServer(grpcServer, &pb.Server{})
+	pb.RegisterWeatherFetcherServer(grpcServer, &weatherFetcherServer{cache: NewCache()})
 	log.Printf("server listening at %v", lis.Addr())
 
 	err = grpcServer.Serve(lis)
